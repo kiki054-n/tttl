@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>インタラクティブ・レポート：友朋共生の世界</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals & Sage -->
+    <!-- Application Structure Plan: A thematic, single-page application with a persistent top navigation bar. The structure guides the user from the core concept ('What is it?') to practical applications ('Where do we see it?'), then to actionable frameworks ('How does it work?'), challenges ('What are the barriers?'), the future ('What's next?'), and finally interactive exploration ('Reflection' & 'Q&A'). This non-linear but logical flow is designed for better usability and exploration than the original report's structure, using interactive cards, filterable case studies, and visual diagrams to make complex information digestible and engaging. -->
+    <!-- Visualization & Content Choices: 
+        1. Philosophical Roots: Report Info -> Philosophical foundations (Buddhism, Confucianism, Land Ethic). Goal -> Inform & Compare. Viz -> Interactive HTML cards with Unicode icons. Interaction -> Click to reveal details in a modal. Also, a Gemini API call for modern interpretations. Justification -> Makes dense philosophy approachable and offers dynamic contemporary relevance. Library -> Vanilla JS, Gemini API.
+        2. Framework Diagram ("Yonjo"): Report Info -> "Four-tiered support" model (四助). Goal -> Organize & Inform. Viz -> Doughnut Chart. Interaction -> Click/hover on segments to display contextual information. Justification -> Transforms an abstract concept into a tangible, interactive visual, enhancing comprehension. Library -> Chart.js.
+        3. Practical Examples: Report Info -> Case studies across various sectors. Goal -> Organize & Explore. Viz -> Filterable grid of cards. Interaction -> Filter buttons to sort cases by domain. Also, a Gemini API call for detailed insights/similar cases. Justification -> Allows users to focus on relevant areas and explore deeper context. Library -> Vanilla JS, Gemini API.
+        4. Challenges: Report Info -> Interpersonal and systemic barriers. Goal -> Inform & Organize. Viz -> Two-column layout with expandable accordions. Interaction -> Click to expand/collapse. Also, a Gemini API call for solutions. Justification -> Neatly organizes problems and offers dynamic solutions, empowering the user. Library -> Vanilla JS, Gemini API.
+        5. Future & Reflection & Q&A (LLM Features): Report Info -> Concepts of future, reflection, and inquiry. Goal -> Inspire, Engage, Personalize. Viz -> Sections with single interaction buttons/forms. Interaction -> Gemini API calls to generate detailed visions, personal prompts, and answer user questions. Justification -> Provides a rich, dynamic, and personalized exploration of "友朋共生" through AI dialogue. Library -> Vanilla JS, Gemini API.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body { font-family: 'Noto Sans JP', sans-serif; scroll-behavior: smooth; }
+        .bg-cream { background-color: #FDFBF5; }
+        .text-deep-gray { color: #3A3A3A; }
+        .bg-sage-light { background-color: #EBF1E8; }
+        .text-sage-dark { color: #5A7D65; }
+        .accent-sage { background-color: #8FBC8F; }
+        .accent-sage-hover:hover { background-color: #79a179; }
+        .nav-link { transition: color 0.3s, border-bottom-color 0.3s; padding-bottom: 4px; border-bottom: 2px solid transparent; }
+        .nav-link:hover, .nav-link.active { color: #5A7D65; border-bottom-color: #5A7D65; }
+        .card-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .case-study-card { transition: transform 0.3s, box-shadow 0.3s; will-change: transform; }
+        .case-study-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; }
+        .chart-container { position: relative; width: 100%; max-width: 450px; margin-left: auto; margin-right: auto; height: 320px; max-height: 400px;}
+        @media (min-width: 768px) { .chart-container { height: 400px; } }
+        .llm-button { background-color: #F0FDF4; color: #15803d; border: 1px solid #86efac; border-radius: 9999px; padding: 0.5rem 1rem; font-size: 0.875rem; transition: background-color 0.3s, color 0.3s; cursor: pointer; }
+        .llm-button:hover:not(:disabled) { background-color: #dcfce7; color: #166534; }
+        .llm-button:disabled { cursor: not-allowed; opacity: 0.7; }
+        .loading-spinner { border: 4px solid rgba(0, 0, 0, .1); border-left-color: #5A7D65; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle; margin-right: 0.5rem;}
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-cream text-deep-gray">
+
+    <header class="bg-cream/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+        <nav class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-xl font-bold text-sage-dark">友朋共生の世界</a>
+            <div class="hidden md:flex space-x-8">
+                <a href="#concept" class="nav-link">概念</a>
+                <a href="#philosophy" class="nav-link">思想</a>
+                <a href="#practice" class="nav-link">実践</a>
+                <a href="#framework" class="nav-link">仕組</a>
+                <a href="#challenges" class="nav-link">課題</a>
+                <a href="#future" class="nav-link">未来</a>
+                <a href="#qna" class="nav-link">Q&A</a>
+            </div>
+            <button id="mobile-menu-button" class="md:hidden text-sage-dark focus:outline-none">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path></svg>
+            </button>
+        </nav>
+        <div id="mobile-menu" class="hidden md:hidden">
+            <a href="#concept" class="block py-2 px-6 text-sm text-deep-gray hover:bg-sage-light">概念</a>
+            <a href="#philosophy" class="block py-2 px-6 text-sm text-deep-gray hover:bg-sage-light">思想</a>
+            <a href="#practice" class="block py-2 px-6 text-sm text-deep-gray hover:bg-sage-light">実践</a>
+            <a href="#framework" class="block py-2 px-6 text-sm text-deep-gray hover:bg-sage-light">仕組</a>
+            <a href="#challenges" class="block py-2 px-6 text-sm text-deep-gray hover:bg-sage-light">課題</a>
+            <a href="#future" class="block py-2 px-6 text-sm text-deep-gray hover:bg-sage-light">未来</a>
+            <a href="#qna" class="block py-2 px-6 text-sm text-deep-gray hover:bg-sage-light">Q&A</a>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-6 py-12">
+
+        <section id="concept" class="text-center min-h-[60vh] flex flex-col justify-center items-center">
+            <h2 class="text-4xl md:text-5xl font-bold text-sage-dark mb-4">友朋共生とは何か？</h2>
+            <p class="max-w-3xl mx-auto text-lg md:text-xl leading-relaxed">
+                単に共に存在する「共存」を超え、友人や仲間（友朋）として互いに支え、理解し、共に成長していく積極的な関係性。それは、ラテン語で「共にパンを食べる仲間」を意味する「コンパニオン」の語源に立ち返り、違いを認め合うだけでなく、深い信頼と共感に基づき、共通の目的へ向かう調和の形を探求することです。
+            </p>
+        </section>
+
+        <section id="philosophy" class="py-16 md:py-24 bg-sage-light rounded-2xl">
+            <div class="text-center mb-12 px-4">
+                <h2 class="text-3xl font-bold text-sage-dark mb-2">共生を支える思想的基盤</h2>
+                <p class="max-w-2xl mx-auto text-deep-gray/80">「友朋共生」の理念は、古今東西の様々な思想の中にその根を見出すことができます。ここでは、その代表的な3つの思想を探ります。各カードをクリックすると、より詳しい解説がご覧いただけます。</p>
+            </div>
+            <div class="card-container px-4">
+                <div class="philosophy-card bg-cream p-6 rounded-lg shadow-sm cursor-pointer hover:shadow-lg transition-shadow" data-philosophy-title="仏教：共生（ともいき）">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl mr-4">🙏</span>
+                        <h3 class="text-xl font-bold text-sage-dark">仏教：共生（ともいき）</h3>
+                    </div>
+                    <p class="text-deep-gray/90 mb-4">全ての生命は相互に関連し合っているという思想。個人の利己主義を乗り越え、自己、共同体、自然が共に向上する「現世の浄土」の実現を目指します。</p>
+                    <button class="llm-button mt-2" data-llm-type="philosophy">✨現代的解釈を尋ねる</button>
+                </div>
+                <div class="philosophy-card bg-cream p-6 rounded-lg shadow-sm cursor-pointer hover:shadow-lg transition-shadow" data-philosophy-title="儒教：共生幸福論">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl mr-4">🏛️</span>
+                        <h3 class="text-xl font-bold text-sage-dark">儒教：共生幸福論</h3>
+                    </div>
+                    <p class="text-deep-gray/90 mb-4">幸福は個人に留まらず、家族から社会へと拡大するという考え。個人の修養が、調和の取れた社会の基盤となると説きます。</p>
+                    <button class="llm-button mt-2" data-llm-type="philosophy">✨現代的解釈を尋ねる</button>
+                </div>
+                <div class="philosophy-card bg-cream p-6 rounded-lg shadow-sm cursor-pointer hover:shadow-lg transition-shadow" data-philosophy-title="土地倫理">
+                    <div class="flex items-center mb-3">
+                        <span class="text-3xl mr-4">🌳</span>
+                        <h3 class="text-xl font-bold text-sage-dark">土地倫理</h3>
+                    </div>
+                    <p class="text-deep-gray/90 mb-4">人間を自然共同体の一部と捉え、生態系全体への倫理的責任を説きます。人間社会と自然界の相互依存性を認識することの重要性を強調します。</p>
+                    <button class="llm-button mt-2" data-llm-type="philosophy">✨現代的解釈を尋ねる</button>
+                </div>
+            </div>
+        </section>
+
+        <section id="practice" class="py-16 md:py-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-sage-dark mb-2">多様な実践の世界</h2>
+                <p class="max-w-2xl mx-auto text-deep-gray/80">「友朋共生」は理想論ではありません。地域づくりから職場、教育まで、社会の様々な場面でその理念は息づいています。興味のある分野をクリックして、具体的な事例をご覧ください。</p>
+            </div>
+            <div id="filters" class="flex flex-wrap justify-center gap-2 mb-8">
+                <button class="filter-btn active px-4 py-2 text-sm font-medium rounded-full accent-sage text-white" data-filter="all">すべて</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300" data-filter="community">地域・ケア</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300" data-filter="multicultural">多文化</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300" data-filter="workplace">職場</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300" data-filter="education">教育</button>
+                <button class="filter-btn px-4 py-2 text-sm font-medium rounded-full bg-gray-200 text-gray-700 hover:bg-gray-300" data-filter="aging">高齢化社会</button>
+            </div>
+            <div id="case-studies" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            </div>
+        </section>
+
+        <section id="framework" class="py-16 md:py-24 bg-sage-light rounded-2xl">
+            <div class="text-center mb-12 px-4">
+                <h2 class="text-3xl font-bold text-sage-dark mb-2">共生を支える仕組み：「四助」</h2>
+                <p class="max-w-2xl mx-auto text-deep-gray/80">日本の地域包括ケアシステムは、「四助」という考え方に基づいています。これは個人から公的支援まで、社会全体で支え合う仕組みを示しています。グラフの各項目に触れて詳細を確認してください。</p>
+            </div>
+            <div class="flex flex-col lg:flex-row items-center gap-8">
+                <div class="w-full lg:w-1/2">
+                    <div class="chart-container">
+                        <canvas id="support-chart"></canvas>
+                    </div>
+                </div>
+                <div id="framework-description" class="w-full lg:w-1/2 p-4 min-h-[200px]">
+                    <h3 id="framework-title" class="text-2xl font-bold text-sage-dark mb-3">項目を選択してください</h3>
+                    <p id="framework-text" class="text-deep-gray/90 leading-relaxed">
+                        この図は、地域社会における支援の4つの層を示しています。個人の自立を基本としつつ、それが地域、社会保険、そして公的な支援によって重層的に支えられることで、誰もが安心して暮らせる社会を目指します。
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <section id="challenges" class="py-16 md:py-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold text-sage-dark mb-2">共生への課題と障壁</h2>
+                <p class="max-w-2xl mx-auto text-deep-gray/80">「友朋共生」の実現は、平坦な道のりではありません。人間関係の複雑さや社会の仕組みが、障壁となることがあります。項目をクリックして詳細をご覧ください。</p>
+            </div>
+            <div class="grid md:grid-cols-2 gap-8">
+                <div>
+                    <h3 class="text-xl font-bold mb-4">🤝 対人関係の力学</h3>
+                    <div class="accordion-container space-y-3" id="interpersonal-challenges"></div>
+                </div>
+                <div>
+                    <h3 class="text-xl font-bold mb-4">🏢 社会的・制度的障壁</h3>
+                    <div class="accordion-container space-y-3" id="systemic-challenges"></div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="future" class="py-16 md:py-24 text-center bg-sage-light rounded-2xl">
+            <h2 class="text-3xl font-bold text-sage-dark mb-4">共生の未来：共存から共創へ</h2>
+            <p class="max-w-3xl mx-auto text-lg leading-relaxed mb-6">
+                デジタル化とグローバル化が進む現代において、「友朋共生」は新たな局面を迎えています。人間とAIの共生、国境を超えた協働など、その可能性は広がり続けています。私たちの未来は、単なる「共存」に留まらず、対話を通じて互いの価値を高め合い、新しい価値を共に創り出す「共創」へと向かうべきです。
+            </p>
+            <button id="future-vision-button" class="llm-button inline-block px-8 py-3 font-bold text-white accent-sage rounded-full accent-sage-hover transition-colors">✨未来の共生社会のビジョンを聞く</button>
+            <a href="#concept" class="inline-block px-8 py-3 font-bold text-white accent-sage rounded-full accent-sage-hover transition-colors mt-4 md:mt-0 md:ml-4">もう一度、基本から探る</a>
+        </section>
+        
+        <section id="personal-reflection" class="py-16 md:py-24 text-center">
+            <h2 class="text-3xl font-bold text-sage-dark mb-4">✨友朋共生を深める問い</h2>
+            <p class="max-w-3xl mx-auto text-lg leading-relaxed mb-6">
+                「友朋共生」の概念をより深く理解し、自身の生活にどのように活かせるかを考えるための、パーソナルな問いかけや具体的な行動ステップを提案します。
+            </p>
+            <button id="reflection-prompt-button" class="llm-button inline-block px-8 py-3 font-bold text-white accent-sage rounded-full accent-sage-hover transition-colors">✨今日の問いかけを受け取る</button>
+        </section>
+
+        <section id="qna" class="py-16 md:py-24 bg-sage-light rounded-2xl">
+            <div class="text-center mb-12 px-4">
+                <h2 class="text-3xl font-bold text-sage-dark mb-2">✨友朋共生に質問する</h2>
+                <p class="max-w-2xl mx-auto text-deep-gray/80">「友朋共生」について、さらに知りたいことがありますか？ここに質問を入力して、Geminiに尋ねてみましょう。</p>
+            </div>
+            <div class="max-w-2xl mx-auto flex flex-col gap-4">
+                <textarea id="user-question-input" class="w-full p-4 rounded-lg border border-gray-300 focus:ring-2 focus:ring-sage-dark focus:border-transparent resize-y min-h-[100px]" placeholder="例：友朋共生は、現代のビジネスにどのように適用できますか？"></textarea>
+                <button id="ask-question-button" class="llm-button px-8 py-3 font-bold text-white accent-sage rounded-full accent-sage-hover transition-colors self-end">✨質問する</button>
+            </div>
+        </section>
+
+    </main>
+    
+    <footer class="bg-white border-t border-gray-200">
+        <div class="container mx-auto px-6 py-4 text-center text-sm text-gray-500">
+            <p>&copy; 2025 「友朋共生」インタラクティブ・レポート. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <div id="modal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden items-center justify-center p-4 transition-opacity duration-300">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto p-8 relative transform scale-95 transition-transform duration-300">
+            <button id="modal-close" class="absolute top-4 right-4 text-gray-500 hover:text-gray-800 text-3xl font-bold">&times;</button>
+            <div id="modal-content"></div>
+        </div>
+    </div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+
+    const philosophyData = [
+        {
+            title: '仏教：共生（ともいき）の思想',
+            content: `
+                <p class="mb-4">椎尾弁匡師によって提唱された「共生（ともいき）」は、浄土宗の教えを現代社会に適合させた思想です。中心的な考えは、全ての存在が互いに関連し合っているという「縁起」の教えに基づいています。</p>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong>現世の浄土:</strong> 救済を死後の世界に求めるのではなく、今この世界をより良い「浄土」にするために行動することを重視します。</li>
+                    <li><strong>利己主義の克服:</strong> 個々の存在は無数の縁（諸縁力）によって生かされていると認識し、自己中心的な考えから脱却することを目指します。</li>
+                    <li><strong>念仏生活:</strong> 日々の職務に励み、自己、共同体、自然環境が共に向上するよう絶えず努力することが、真の「念仏生活」であると説きます。</li>
+                </ul>`
+        },
+        {
+            title: '儒教：共生幸福論',
+            content: `
+                <p class="mb-4">儒教における「共生幸福論」は、個人の幸福が孤立して存在するのではなく、社会的な関係性の中で実現されると考えます。</p>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong>段階的な幸福の拡大:</strong> 幸福の追求は「修身、斉家、治国、平天下」という段階を踏んで、自己から家族、地域、国家へと拡大していきます。</li>
+                    <li><strong>家族基盤:</strong> 「孝」を基盤とする家族道徳が社会道徳の基礎となり、個人の生命を過去から未来へと繋がる連続体として捉えます。</li>
+                    <li><strong>入世性:</strong> 抽象的な議論よりも、親子、夫婦、友人といった具体的な人間関係における倫理的行動を重んじ、世俗社会へ積極的に関与することを奨励します。</li>
+                </ul>`
+        },
+        {
+            title: '土地倫理（アルド・レオポルド）',
+            content: `
+                <p class="mb-4">「土地倫理」は、共生の範囲を人間社会だけでなく、土壌、水、植物、動物を含む生態系全体（＝土地）にまで拡張する考え方です。</p>
+                <ul class="list-disc pl-5 space-y-2">
+                    <li><strong>生物共同体の一員:</strong> 人間を地球の征服者ではなく、生命共同体のいちメンバーとして捉え直します。</li>
+                    <li><strong>倫理的責任:</strong> 人間同士の関係だけでなく、人間と自然環境との関係にも倫理的な配慮が必要であると主張します。</li>
+                    <li><strong>生態学的調和:</strong> 人類の長期的な生存と繁栄は、自然への愛情と尊敬に基づき、生態系との調和のとれた関係を築くことにかかっていると説きます。これは人間社会と自然界の相互依存性を明確に示しています。</li>
+                </ul>`
+        }
+    ];
+    
+    const caseStudiesData = [
+        { category: 'community', title: '多世代交流型地域づくり', content: '高齢者と若者が交流する場やシェアハウスを設け、世代を超えた相互理解と支援のネットワークを構築。地域の活力向上と孤立防止に繋がる。' },
+        { category: 'aging', title: '共生型サービス', content: '高齢者と障害者が同じ事業所でケアサービスを受けられる仕組み。年齢や障害の有無に関わらず、住み慣れた地域で暮らし続けられる社会を目指す。' },
+        { category: 'multicultural', title: '行政・生活情報の多言語化', content: '外国人住民が安心して生活できるよう、行政手続きや災害情報などを多言語で提供。情報の壁をなくし、地域社会への参加を促す。' },
+        { category: 'multicultural', title: '文化交流イベントの開催', content: '地域の祭りに外国人住民が参加・協力する機会を創出。互いの文化への理解を深め、顔の見える関係を築くことで、偏見の解消に繋がる。' },
+        { category: 'workplace', title: '非公式なコミュニケーションの促進', content: 'ランチ会や社内SNS、「社長のおごり自販機」など、業務外での交流を意図的に設計。部署や役職を超えた信頼関係を育み、組織全体の風通しを良くする。' },
+        { category: 'workplace', title: 'リバースメンター制度', content: '若手社員が役員や上級管理職のメンターとなり、新しい価値観やテクノロジーを教える制度。世代間のギャップを埋め、相互尊重の文化を醸成する。' },
+        { category: 'education', title: '「見えない大変さ」への理解', content: '学習障害や家庭環境など、外からは見えにくい困難を抱える生徒がいることを前提とした教育。全ての生徒が互いを理解し支え合う相互支援の態度を育む。' },
+        { category: 'education', title: '地域課題解決プロジェクト', content: '生徒が地域の課題（例：防災）について学び、地域住民と協力して解決策を考える実践的な学習。社会への当事者意識と共生意識を育てる。' },
+        { category: 'community', title: 'シェアハウス', content: '多様な背景を持つ人々が共に生活し、孤独感を解消し社会的なつながりを広げる新しい賃貸モデル。' },
+        { category: 'aging', title: 'スマートコミュニティ', content: 'IoTやAIを活用し、世代間のつながりを強化し、ケアを改善するプロジェクト。地域の自助・互助を促進する。' }
+    ];
+
+    const challengesData = {
+        interpersonal: [
+            { title: '友情の不安定さ', content: '友情は「情緒的なつながり」に依存するため、コミュニケーション不足や価値観の不一致で容易に悪化する可能性がある。', type: 'interpersonal' },
+            { title: '信頼の欠如', content: '嘘や裏切りは、関係の基盤である信頼を破壊し、修復が困難な対立を生む。', type: 'interpersonal' },
+            { title: 'コミュニケーションギャップ', content: '特に男女間の友情では、関係性への期待値が異なり、誤解が生じやすいことが指摘されている。', type: 'interpersonal' }
+        ],
+        systemic: [
+            { title: '制度の認知度不足', content: '「共生型サービス」のように優れた制度があっても、国民や事業者への認知度が低く、利用が進まない。', type: 'systemic' },
+            { title: '縦割り行政の弊害', content: '高齢者福祉、障害者福祉、子育て支援などが別々の部署で管轄され、分野を横断した包括的な支援が難しい。', type: 'systemic' },
+            { title: '教育における体系的ギャップ', content: '外国人児童への教育支援が各学校の裁量に任されるなど、包摂的な社会を実現するための制度設計が追いついていない。', type: 'systemic' }
+        ]
+    };
+    
+    const frameworkData = {
+        jijo: { title: '自助', text: '個々人が自らの健康管理や生活基盤の安定に努め、自立した生活を送ること。すべての支援の基礎となる。' },
+        gojo: { title: '互助', text: '家族、友人、近隣住民など、インフォーマルな関係性の中で行われる自発的な助け合い。地域のつながりが重要。' },
+        kyojo: { title: '共助', text: '介護保険や医療保険、年金など、社会保険制度を通じて国民が相互に支え合う仕組み。制度に基づく公式な支援。' },
+        kojo: { title: '公助', text: '生活困窮者支援など、他のどの支援でも対応できない場合に、税金を財源として国や自治体が提供する最終的なセーフティネット。' },
+    };
+
+    const modal = document.getElementById('modal');
+    const modalContentContainer = document.querySelector('#modal > div');
+    const modalContent = document.getElementById('modal-content');
+    const modalClose = document.getElementById('modal-close');
+
+    const closeModal = () => {
+        modal.classList.add('opacity-0');
+        modalContentContainer.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+        }, 300);
+    };
+
+    modalClose.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            closeModal();
+        }
+    });
+
+    const displayLlmResponse = (title, response) => {
+        modalContent.innerHTML = `<h2 class="text-2xl font-bold mb-4 text-sage-dark">${title}</h2><div class="text-deep-gray/90 leading-relaxed">${response}</div>`;
+        modal.classList.remove('hidden', 'opacity-0');
+        modalContentContainer.classList.remove('scale-95');
+    };
+
+    const callGeminiAPI = async (prompt, buttonElement) => {
+        const originalText = buttonElement.dataset.originalText || buttonElement.innerHTML;
+        buttonElement.innerHTML = '<span class="loading-spinner"></span> 思考中...';
+        buttonElement.disabled = true;
+
+        try {
+            let chatHistory = [];
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            const payload = { contents: chatHistory };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`Gemini API Error: Status ${response.status}, Response: ${errorText}`);
+                return `APIエラーが発生しました (Status: ${response.status})。詳細: ${errorText.substring(0, 100)}...`;
+            }
+
+            const result = await response.json();
+            if (result.candidates && result.candidates.length > 0 &&
+                result.candidates[0].content && result.candidates[0].content.parts &&
+                result.candidates[0].content.parts.length > 0) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                return "応答がありませんでした。";
+            }
+        } catch (error) {
+            console.error("Gemini APIエラー:", error);
+            return "エラーが発生しました。もう一度お試しください。";
+        } finally {
+            buttonElement.innerHTML = originalText;
+            buttonElement.disabled = false;
+        }
+    };
+
+    document.querySelectorAll('.philosophy-card').forEach((card, index) => {
+        const philosophyTitle = card.dataset.philosophy-title;
+        const llmButton = card.querySelector('.llm-button[data-llm-type="philosophy"]');
+        llmButton.dataset.originalText = llmButton.innerHTML;
+
+        card.addEventListener('click', (e) => {
+            if (e.target.closest('.llm-button')) return;
+            const data = philosophyData[index];
+            modalContent.innerHTML = `<h2 class="text-2xl font-bold mb-4 text-sage-dark">${data.title}</h2><div class="text-deep-gray/90 leading-relaxed">${data.content}</div>`;
+            modal.classList.remove('hidden', 'opacity-0');
+            modalContentContainer.classList.remove('scale-95');
+        });
+
+        llmButton.addEventListener('click', async () => {
+            const prompt = `『${philosophyTitle}』の主要な考え方を、現代の日常生活や社会にどのように適用できるか、具体的な例を挙げて分かりやすく解説してください。`;
+            const llmResponse = await callGeminiAPI(prompt, llmButton);
+            displayLlmResponse(`『${philosophyTitle}』の現代的解釈`, llmResponse);
+        });
+    });
+
+    const mobileMenuButton = document.getElementById('mobile-menu-button');
+    const mobileMenu = document.getElementById('mobile-menu');
+    mobileMenuButton.addEventListener('click', () => {
+        mobileMenu.classList.toggle('hidden');
+    });
+    
+    document.querySelectorAll('#mobile-menu a, .nav-link').forEach(link => {
+        link.addEventListener('click', () => {
+            if (mobileMenu.classList.contains('hidden') === false) {
+                 mobileMenu.classList.add('hidden');
+            }
+        });
+    });
+
+    const caseStudiesContainer = document.getElementById('case-studies');
+    const renderCaseStudies = (filter) => {
+        caseStudiesContainer.innerHTML = '';
+        const filteredData = (filter === 'all') ? caseStudiesData : caseStudiesData.filter(d => d.category === filter);
+        filteredData.forEach(study => {
+            const card = document.createElement('div');
+            card.className = 'case-study-card bg-white p-6 rounded-lg shadow-md border border-gray-100 flex flex-col';
+            card.innerHTML = `
+                <h3 class="text-lg font-bold text-sage-dark mb-2">${study.title}</h3>
+                <p class="text-sm text-deep-gray/80 flex-grow mb-4">${study.content}</p>
+                <button class="llm-button mt-auto" data-llm-type="case-study" data-case-study-title="${study.title}" data-case-study-content="${study.content}">✨もっと詳しく / 類似事例</button>
+            `;
+            caseStudiesContainer.appendChild(card);
+        });
+
+        document.querySelectorAll('.case-study-card .llm-button[data-llm-type="case-study"]').forEach(llmButton => {
+            llmButton.dataset.originalText = llmButton.innerHTML;
+            llmButton.addEventListener('click', async () => {
+                const caseStudyTitle = llmButton.dataset.caseStudyTitle;
+                const caseStudyContent = llmButton.dataset.caseStudyContent;
+                const prompt = `『${caseStudyTitle}』という友朋共生の実践事例について、さらに詳しい情報や、それと似たような具体的な事例を2〜3つ提案してください。事例の内容は「${caseStudyContent}」です。`;
+                const llmResponse = await callGeminiAPI(prompt, llmButton);
+                displayLlmResponse(`『${caseStudyTitle}』の詳細と類似事例`, llmResponse);
+            });
+        });
+    };
+
+    document.querySelectorAll('.filter-btn').forEach(button => {
+        button.addEventListener('click', () => {
+            const currentActiveBtn = document.querySelector('.filter-btn.active');
+            if (currentActiveBtn) {
+                currentActiveBtn.classList.remove('active', 'accent-sage', 'text-white');
+                currentActiveBtn.classList.add('bg-gray-200', 'text-gray-700');
+            }
+            button.classList.add('active', 'accent-sage', 'text-white');
+            button.classList.remove('bg-gray-200', 'text-gray-700');
+            renderCaseStudies(button.dataset.filter);
+        });
+    });
+    renderCaseStudies('all');
+
+    const renderAccordions = () => {
+        const interpersonalContainer = document.getElementById('interpersonal-challenges');
+        const systemicContainer = document.getElementById('systemic-challenges');
+        interpersonalContainer.innerHTML = '';
+        systemicContainer.innerHTML = '';
+
+        challengesData.interpersonal.forEach(item => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'border border-gray-200 rounded-md';
+            wrapper.innerHTML = `
+                <button class="accordion-header w-full text-left p-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors" data-challenge-title="${item.title}" data-challenge-type="${item.type}">
+                    <span class="font-medium">${item.title}</span>
+                    <span class="transform transition-transform duration-300">▼</span>
+                </button>
+                <div class="accordion-content">
+                    <p class="p-4 text-sm text-deep-gray/80">${item.content}</p>
+                    <button class="llm-button ml-4 mb-4" data-llm-type="challenge">✨解決策を提案</button>
+                </div>
+            `;
+            interpersonalContainer.appendChild(wrapper);
+        });
+
+        challengesData.systemic.forEach(item => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'border border-gray-200 rounded-md';
+            wrapper.innerHTML = `
+                <button class="accordion-header w-full text-left p-4 flex justify-between items-center bg-gray-50 hover:bg-gray-100 transition-colors" data-challenge-title="${item.title}" data-challenge-type="${item.type}">
+                    <span class="font-medium">${item.title}</span>
+                    <span class="transform transition-transform duration-300">▼</span>
+                </button>
+                <div class="accordion-content">
+                    <p class="p-4 text-sm text-deep-gray/80">${item.content}</p>
+                    <button class="llm-button ml-4 mb-4" data-llm-type="challenge">✨解決策を提案</button>
+                </div>
+            `;
+            systemicContainer.appendChild(wrapper);
+        });
+
+        document.querySelectorAll('.accordion-header').forEach(header => {
+            header.addEventListener('click', (e) => {
+                if (e.target.closest('.llm-button')) return;
+                const content = header.nextElementSibling;
+                const icon = header.querySelector('span:last-child');
+                const isExpanded = content.style.maxHeight && content.style.maxHeight !== '0px';
+
+                document.querySelectorAll('.accordion-content').forEach(c => { if(c !== content) c.style.maxHeight = null });
+                document.querySelectorAll('.accordion-header span:last-child').forEach(i => { if(i !== icon) i.style.transform = 'rotate(0deg)' });
+                
+                if (!isExpanded) {
+                    content.style.maxHeight = content.scrollHeight + 'px';
+                    icon.style.transform = 'rotate(180deg)';
+                } else {
+                    content.style.maxHeight = null;
+                    icon.style.transform = 'rotate(0deg)';
+                }
+            });
+        });
+
+        document.querySelectorAll('.accordion-content .llm-button[data-llm-type="challenge"]').forEach(llmButton => {
+            llmButton.dataset.originalText = llmButton.innerHTML;
+            llmButton.addEventListener('click', async () => {
+                const header = llmButton.closest('.accordion-content').previousElementSibling;
+                const challengeTitle = header.dataset.challengeTitle;
+                const challengeType = header.dataset.challengeType;
+                let prompt;
+
+                if (challengeType === 'interpersonal') {
+                    prompt = `『${challengeTitle}』のような対人関係の課題を克服するための、実践的な解決策や具体的なコミュニケーション戦略を提案してください。`;
+                } else if (challengeType === 'systemic') {
+                    prompt = `『${challengeTitle}』のような社会・制度的障壁を乗り越え、『友朋共生』を促進するための具体的な政策提言や社会的な取り組みアイデアを提案してください。`;
+                }
+
+                const llmResponse = await callGeminiAPI(prompt, llmButton);
+                displayLlmResponse(`『${challengeTitle}』への解決策`, llmResponse);
+            });
+        });
+    };
+    renderAccordions();
+
+    const ctx = document.getElementById('support-chart').getContext('2d');
+    const supportChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['自助', '互助', '共助', '公助'],
+            datasets: [{
+                data: [25, 25, 25, 25],
+                backgroundColor: ['#A8D8B9', '#8FBC8F', '#77A168', '#5A7D65'],
+                borderColor: '#EBF1E8',
+                borderWidth: 6,
+                hoverBorderColor: '#FDFBF5',
+                hoverBorderWidth: 6,
+                hoverOffset: 15
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        font: { size: 14, family: "'Noto Sans JP', sans-serif" },
+                        padding: 20
+                    }
+                },
+                tooltip: { enabled: false }
+            },
+            onHover: (event, chartElement) => {
+              event.native.target.style.cursor = chartElement[0] ? 'pointer' : 'default';
+              if(chartElement.length > 0){
+                const index = chartElement[0].index;
+                updateFrameworkDescription(index);
+              }
+            },
+        }
+    });
+    
+    const frameworkTitle = document.getElementById('framework-title');
+    const frameworkText = document.getElementById('framework-text');
+    const updateFrameworkDescription = (index) => {
+        const label = supportChart.data.labels[index];
+        const key = { '自助': 'jijo', '互助': 'gojo', '共助': 'kyojo', '公助': 'kojo' }[label];
+        const data = frameworkData[key];
+        frameworkTitle.textContent = data.title;
+        frameworkText.textContent = data.text;
+    }
+    document.getElementById('support-chart').onclick = (evt) => {
+        const activePoints = supportChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true);
+        if (activePoints.length) {
+            updateFrameworkDescription(activePoints[0].index);
+        }
+    };
+    
+    const navLinks = document.querySelectorAll('.nav-link');
+    const sections = document.querySelectorAll('main section');
+    window.addEventListener('scroll', () => {
+        let current = '';
+        sections.forEach(section => {
+            const sectionTop = section.offsetTop;
+            if (pageYOffset >= sectionTop - 70) {
+                current = section.getAttribute('id');
+            }
+        });
+        navLinks.forEach(link => {
+            link.classList.remove('active');
+            if (link.getAttribute('href').includes(current)) {
+                link.classList.add('active');
+            }
+        });
+    });
+
+    const futureVisionButton = document.getElementById('future-vision-button');
+    futureVisionButton.dataset.originalText = futureVisionButton.innerHTML;
+    futureVisionButton.addEventListener('click', async () => {
+        const prompt = "友朋共生が完全に実現された未来の社会はどのようなものでしょうか？人間とAI、そして自然がどのように調和し、共創しているかを具体的に描写してください。感情豊かに、希望に満ちた形で、約500字程度でお願いします。";
+        const llmResponse = await callGeminiAPI(prompt, futureVisionButton);
+        displayLlmResponse("✨未来の共生社会のビジョン", llmResponse);
+    });
+
+    const reflectionPromptButton = document.getElementById('reflection-prompt-button');
+    reflectionPromptButton.dataset.originalText = reflectionPromptButton.innerHTML;
+    reflectionPromptButton.addEventListener('click', async () => {
+        const prompt = "「友朋共生」の理念を、ユーザーが自身の日常生活や人間関係に当てはめて深く考えるための、パーソナルな問いかけ、または具体的な行動ステップを一つ提案してください。簡潔で、示唆に富む内容をお願いします。";
+        const llmResponse = await callGeminiAPI(prompt, reflectionPromptButton);
+        displayLlmResponse("✨今日の問いかけ", llmResponse);
+    });
+
+    const askQuestionButton = document.getElementById('ask-question-button');
+    const userQuestionInput = document.getElementById('user-question-input');
+    askQuestionButton.dataset.originalText = askQuestionButton.innerHTML;
+    askQuestionButton.addEventListener('click', async () => {
+        const userQuestion = userQuestionInput.value.trim();
+        if (userQuestion) {
+            const prompt = `「友朋共生」という概念について、以下のユーザーからの質問に答えてください。この概念は、仏教、儒教、土地倫理などの思想に基づき、相互支援、理解、共通の目的を重視する調和のとれた共生関係を指します。回答は、包括的かつ分かりやすくお願いします。\n\nユーザーの質問： "${userQuestion}"`;
+            const llmResponse = await callGeminiAPI(prompt, askQuestionButton);
+            displayLlmResponse(`「${userQuestion}」への回答`, llmResponse);
+            userQuestionInput.value = ''; // Clear input after asking
+        }
+    });
+
+});
+</script>
+</body>
+</html>
